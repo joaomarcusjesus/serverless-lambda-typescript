@@ -1,0 +1,84 @@
+service: lambda-customers-api
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  environment:
+    CUSTOMER_TABLE: 'customers'
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: "*"
+
+plugins:
+  - serverless-offline
+
+resources:
+  Resources:
+    CustomersDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Delete
+      Properties:
+        TableName: ${self:provider.environment.CUSTOMER_TABLE}
+        AttributeDefinitions:
+          -
+            AttributeName: "id"
+            AttributeType: "S"
+        KeySchema:
+          -
+            AttributeName: "id"
+            KeyType: "HASH"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+
+functions:
+  createCustomer:
+    handler: dist/src/main/routes/customers/create-customer.router
+    description: Create a new customer.
+    events:
+      - http:
+          path: customers
+          method: post
+
+  listCustomers:
+    handler: dist/src/main/routes/customers/list-customer.router
+    description: List all customers.
+    events:
+      - http:
+          path: customers
+          method: get
+          request:
+            parameters:
+              querystrings:
+                search: true
+
+  findCustomer:
+    handler: dist/src/main/routes/customers/find-customer.router
+    description: Find a customer by ID.
+    events:
+      - http:
+          path: customers/{id}
+          method: get
+
+  updateCustomer:
+    handler: dist/src/main/routes/customers/update-customer.router
+    description: Update a customer by ID.
+    events:
+      - http:
+          path: customers/{id}
+          method: put
+
+  deleteCustomer:
+    handler: dist/src/main/routes/customers/delete-customer.router
+    description: Delete a customer by ID.
+    events:
+      - http:
+          path: customers/{id}
+          method: delete
